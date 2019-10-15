@@ -7,8 +7,16 @@ from django.http import HttpResponse
 import threading
 from queue import Queue
 from mainapp.helpers.spider import Spider
-from mainapp.helpers.domain import *
-from mainapp.helpers.general import *
+from mainapp.helpers.domain import get_domain_name, get_sub_domain_name
+from mainapp.helpers.general import (
+        create_dir,
+        create_data_files,
+        write_file,
+        append_to_file,
+        delete_file_contents,
+        file_to_set,
+        set_to_file
+    )
 
 # Create your views here.
 
@@ -24,17 +32,13 @@ def index(request):
             form.save(commit=False)
             form.save()
 
-            PROJECT_NAME = str(request.POST['PROJECT_NAME'])
-            HOMEPAGE = str(request.POST['HOMEPAGE'])
 
-            PROJECT_NAME_APP = PROJECT_NAME
-            HOMEPAGE_APP = HOMEPAGE
-            DOMAIN_NAME = get_domain_name(HOMEPAGE_APP)
-            QUEUE_FILE = PROJECT_NAME_APP + '/queue.txt'
-            CRAWLED_FILE = PROJECT_NAME_APP + '/crawled.txt'
+            DOMAIN_NAME = get_domain_name(str(request.POST['HOMEPAGE']))
+            QUEUE_FILE = str(request.POST['PROJECT_NAME']) + '/queue.txt'
+            CRAWLED_FILE = str(request.POST['PROJECT_NAME']) + '/crawled.txt'
             NUMBER_OF_THREADS = 8
             queue = Queue()
-            Spider(PROJECT_NAME_APP, HOMEPAGE_APP, DOMAIN_NAME)
+            Spider(str(request.POST['PROJECT_NAME']), str(request.POST['HOMEPAGE']), DOMAIN_NAME)
 
             # Create worker threads (will die when main exits)
             def create_workers():
@@ -59,9 +63,9 @@ def index(request):
 
             # Check if there are items in the queue, if so crawl them
             def crawl():
-                queued_links = file_to_set(QUEUE_FILE)
-                if len(queued_links) > 0:
-                    print(str(len(queued_links)) + ' links in the queue')
+                queued_links = len(file_to_set(QUEUE_FILE))
+                if queued_links > 0:
+                    print(f'{queued_links} links in the queue')
                     create_jobs()
 
             create_workers()
